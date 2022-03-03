@@ -1,7 +1,7 @@
 const path = require("path")
 const express = require("express")
 const hbs = require("hbs")
-const geocode = require("./utils/geocode")
+const { geocode, getAddressByGeocode } = require("./utils/geocode")
 const forecast = require("./utils/forecast")
 
 const app = express()
@@ -65,7 +65,7 @@ app.get
 
 app.get
 (
-    "/weather", 
+    "/weather/address", 
     (req, res) =>
     {
         if (!req.query.address)
@@ -103,6 +103,56 @@ app.get
                             location,
                             forecast,
                             address: req.query.address
+                        }
+                        res.send(data)
+                    }
+                )
+            }
+        )
+    }
+)
+
+app.get
+(
+    "/weather/geocode", 
+    (req, res) =>
+    {
+        if (!req.query.longitude || !req.query.latitude)
+            return res.send({error: "No geolocation provided"})
+
+        getAddressByGeocode
+        (
+            req.query.latitude,
+            req.query.longitude,
+            (error, location) =>
+            {
+                if (error)
+                    return res.send({error})
+                
+                forecast
+                (
+                    req.query.latitude, 
+                    req.query.longitude,
+                    (error, forecastData) => 
+                    {
+                        if (error)
+                            return res.send({error})
+        
+                        const forecast = "The temperature in " + 
+                                        location + 
+                                        " is " + 
+                                        forecastData.temperature +
+                                        " °C but it feels like " +
+                                        forecastData.feelslike +
+                                        " °C. The humidity is " + 
+                                        forecastData.humidity +
+                                        " \%. " +
+                                        forecastData.description
+                        const data = 
+                        {
+                            location,
+                            forecast,
+                            address: `latitude=${req.query.latitude},longitude=${req.query.longitude}`
                         }
                         res.send(data)
                     }
